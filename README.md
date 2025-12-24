@@ -146,5 +146,5 @@ L’approche est robuste, progressive et validée à chaque étape.
 ---
 
 ## 8. Auteur
-Projet réalisé par : YL Issakha (21252)
-Cours: Image Processing
+- Projet réalisé par : YL Issakha (21252)
+- Cours: Image Processing
