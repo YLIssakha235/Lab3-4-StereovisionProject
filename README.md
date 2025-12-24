@@ -1,59 +1,150 @@
-# Stereovision 
-# 3D image reconstruction from a set of two 2D images.
+# Stereo Vision - 3D Reconstruction by Laser Scanning
 
-_Summary:  Each of your eyes work together to give you a 3D perception of life. Your brain combines two 2D images into a 3D image space. This process is being done here using fancy math and matrixes to recreate a full 3D image._
+## 1. Objectif du projet
 
-![Suzanne](main.png)
+Ce projet a pour objectif de **reconstruire un objet en 3D** à partir de :
+- deux caméras fixes (stéréo vision),
+- un plan laser balayant l’objet,
+- une séquence d’images synchronisées (Left / Right).
 
-Stereovision is a discipline that deals with the reconstruction of 3D information from images. For the reconstruction of a point, several images of this point are needed. These images must be taken from different points of view. The key step of the reconstruction, which is often problematic, is to identify the images of the point to be reconstructed in each view.
+La reconstruction est réalisée par :
+- calibration stéréo à l’aide d’un damier,
+- calcul de la géométrie épipolaire,
+- extraction de la ligne laser,
+- triangulation 3D point par point.
 
-## Epipolar Geometry
+---
 
-Epipolar geometry involves two cameras. The epipolar geometry describes the geometric properties between two views of the same scene and depends only on the intrinsic parameters of the cameras and their relative positions. It provides, in particular, the epipolar constraint, which will be very useful to produce the matches between views.
+## 2. Données fournies
 
-## The Fondamental Matrix
+- `data/chessboards/`  
+  Images du **damier** dans différentes positions (calibration)
 
-![Epipolar Geometry - Sanyam Kapoor](epipolar.png)
+- `data/scanLeft/`  
+  Images de l’objet avec **laser – caméra gauche**
 
-Let us imagine that we have two images, right and left, of the world space. Let's take a point $\vec{x}$ in the right image space. The point $\vec{X}$ of the world space, of which $\vec{x}$ is the image, can be anywhere on the line passing through $\vec{x}$ and the optical center of the right camera. We will call this line the back-projected ray of $\vec{x}$. Let us note $\vec{x}'$ the image of $\vec{X}$ in the left image space. The locus of $\vec{x}'$ is therefore the image line of the back-projected ray of $\vec{x}$. This line is called the epipolar line and is denoted $\vec{l}'$. The epipolar line passes through the epipole $\vec{e}'$, image of the optical center of the right camera.
+- `data/scanRight/`  
+  Images de l’objet avec **laser – caméra droite**
 
-In 2D projective geometry, a line with equation $ax+by+c = 0$ is represented by a vector with three components $(a, b, c)^T$ defined to within one factor. Thus, we have the following relationship:
+---
 
->The point $\vec{x}$ belongs to the line $\vec{l}$ if and only if $x^T\vec{l} = 0$.
+## 3. Installation
 
-Moreover, in 2D projective geometry, the following remarkable relations are valid:
+### 3.1 Créer un environnement virtuel
 
-- The intersection of two lines $l$ and $l'$ is given by $x = l \times l'$,
-- The line passing through two points $x$ and $x'$ is given by $l = x \times x'$.
+```bash
+python -m venv .venv
+```
 
-Note that the vector product can be written as a product of matrix $x \times y = [x]_\times y$ where
+### 3.2 Activer l’environnement
 
-$$[x]_\times = \begin{pmatrix} 0 & −x3 & x2 \\ x3 & 0 & −x1 \\ −x2 & x1 & 0 \end{pmatrix}$$
+Windows
 
-To find the equation of the epipolar line in the left image space, we just need to find the coordinates of two points of this line. The first is the image $P'\vec{C}$ of the optical center $\vec{C}$ of the right camera where $P'$ is the projection matrix of the left camera. The second is $P'P^{+}\vec{x}$ where $P^{+}$ is the pseudo inverse of the projection matrix $P$ of the right camera. The epipolar line thus has the equation $l' = [P'\vec{C}]_\times{}P'P^{+}\vec{x} = F\vec{x}$ with $F = [P'\vec{C}]_\times{}P'P^{+}$. $F$ is called fundamental matrix.
+```bash
+.venv\Scripts\activate
+```
 
-Since the epipolar line $\vec{l}' = F\vec{x}$ is the locus of $\vec{x}'$, $\vec{x}'$ therefore belongs to $\vec{l}'$ which leads to the epipolar constraint :
+Linux / macOS
+```bash
+source .venv/bin/activate
+```
 
->**The fundamental matrix is such that for any pair of points corresponding $\vec{x} \leftrightarrow \vec{x}'$ in the two images, we have $\vec{x}'^{T}F\vec{x} = 0$.**
+### Installer les dépendances
+```bash
+pip install opencv-python numpy matplotlib jupyter
+```
 
-## Computation of the fundamental matrix
+---
 
-The fundamental matrix $F$ has seven degrees of freedom. It has nine components but these are defined to within one scale factor, which removes one degree of freedom. Moreover, the matrix $F$ is a singular matrix ($det(F) = 0$) which gives us seven degrees of freedom. So we need at least seven correspondences to compute $F$. The equation $x'^{T}_iFx_i = 0$ and the seven correspondences allow us to write a system of equations of the form $Af = 0$, where $f$ is the vector which contains the components of the matrix $F$. Let us assume that $A$ is a 7×9 matrix of rank 7. The general solution of $Af = 0$ can be written $\alpha f_1 + (1-\alpha) f_2$ where $f_1$ and $f_2$ are two particular independent solutions of $Af = 0$. We then use the singularity constraint $det(\alpha F_1 + (1 - \alpha)F_2) = 0$ to determine $\alpha$. Since the singularity constraint gives rise to a third degree equation, we may have one or three solutions for $F$.
+## 4. Organisation du projet
+Le projet est structuré en blocs successifs, chacun correspondant à une étape théorique du cours.
+---
 
-## OpenCV
+## 5. Description des blocs
 
-In practice you will use the OpenCV library. In python, you have access to its functions through the `cv2` module.
+### BLOC 1: Calibration mono (caméras indépendantes)
+- Détection des coins du damier
+- Raffinement sub-pixel
+- Calcul des paramètres intrinsèques :
+    - matrice K
+    - coefficients de distorsion
+- Estimation des poses (rvec, tvec)
 
-You can find help with the calibration and reconstruction functions on the site https://docs.opencv.org/4.0.0/d9/d0c/group__calib3d.html
+chaque caméra est calibrée individuellement.
 
-## Goal
+---
 
-In the zip of the statement you will find two sequences of images taken by two cameras during the scanning of an object by a laser plane.
+### BLOC 2: Matrice fondamentale F
+- Utilisation des correspondances du damier
+- Calcul de F par :
+    - méthode 8-point
+    - méthode RANSAC (retenue)
+- Vérification de la contrainte :
+x′TFx≈0
 
-![Laser](scanRight/scan0010.png)
+La géométrie épipolaire entre les deux caméras est validée.
 
-You will also find shots of a checkerboard in different positions that will help you calibrate your cameras.
+---
 
-![Damier](chessboards/c2Right.png)
+### BLOC 3: Rectification stéréo
+- Calcul de la pose relative entre caméras
+- Utilisation de cv2.stereoRectify
+- Images rectifiées avec :
+    - épilignes horizontales
+    - correspondances facilitées
+Après rectification, un point gauche correspond à un point droit sur la même ligne horizontale.
 
-The goal is to reconstruct the scanned object in 3D.
+--- 
+
+### BLOC 4: Matrices de projection P1, P2
+- Construction des matrices :
+    P1​=KL​[I∣0],P2​=KR​[R∣t]
+- La caméra gauche est prise comme référence.
+
+Ces matrices sont utilisées pour la triangulation.
+
+---
+
+
+### BLOC 5: Triangulation du damier (validation)
+- Triangulation des coins du damier
+- Vérification de la planéité du nuage 3D
+
+Le damier reconstruit est quasi-plan → validation de la géométrie.
+
+---
+
+### BLOC 6: Reconstruction 3D par laser
+C’est le cœur du projet.
+
+Étapes réalisées pour chaque scan :
+- Rectification des images gauche et droite
+- Extraction de la ligne laser (canal rouge)
+- Échantillonnage : 1 point par ligne horizontale
+- Appariement gauche/droite par coordonnée y
+- Triangulation 3D
+- Accumulation des points sur tous les scan
+
+
+---
+
+## 6. Résultat final
+- Reconstruction 3D cohérente
+- Nuage de points aligné et stable
+- Forme globale de l’objet clairement identifiable
+
+---
+
+## 7. Conclusion
+
+Ce projet démontre une implémentation complète et cohérente
+d’un système de reconstruction 3D par stéréo vision et laser,
+en accord avec les concepts théoriques du cours.
+
+L’approche est robuste, progressive et validée à chaque étape.
+
+---
+
+## 8. Auteur
+Projet réalisé par : YL Issakha (21252)
+Cours: Image Processing
