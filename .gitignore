@@ -6,4 +6,5 @@ calib_left.npz
 calib_right.npz
 3D_image.ipynb
 .venv/
-
+oral.md
+.gitignore
